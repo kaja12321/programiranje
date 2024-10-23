@@ -10,40 +10,48 @@ type vector = float list
 Definirajte enotske vektorje `i`, `j` in `k` v treh dimenzijah.
 [*----------------------------------------------------------------------------*)
 
+let i = [1.; 0.; 0.]
+let j = [0.; 1.; 0.]
+let k = [0.; 0.; 1.]
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `razteg : float -> vector -> vector`, ki vektor, 
 predstavljen s seznamom števil s plavajočo vejico, pomnoži z danim skalarjem.
 [*----------------------------------------------------------------------------*)
 
-let rec razteg = ()
+
+let razteg k = List.map(( *. ) k)
+let razteg2 k v = List.map(fun x -> x *. k) v
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `sestej : vector -> vector -> vector`, ki vrne vsoto dveh 
 vektorjev.
 [*----------------------------------------------------------------------------*)
 
-let rec sestej = ()
+let sestej x y = List.map2( +. ) x y
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `skalarni_produkt : vector -> vector -> float`, ki izračuna 
 skalarni produkt dveh vektorjev
 [*----------------------------------------------------------------------------*)
 
-let rec skalarni_produkt = ()
+let vsota = List.fold_left ( +. ) 0.
+
+let skalarni_produkt x y = vsota @@ List.map2 ( *. ) x y
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `norma : vector -> float`, ki vrne evklidsko normo vektorja.
 [*----------------------------------------------------------------------------*)
 
-let rec norma = ()
+let norma x = sqrt (skalarni_produkt x x)
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `projeciraj : vector -> vector -> vector`, ki izračuna 
 projekcijo prvega vektorja na drugega.
 [*----------------------------------------------------------------------------*)
 
-let rec projeciraj = ()
+
+let projeciraj a b = razteg (skalarni_produkt a b) (razteg (1.0 /. norma b) b)
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `ovij : string -> string -> string`, ki sprejme ime HTML 
@@ -54,7 +62,7 @@ Primer:
 
 [*----------------------------------------------------------------------------*)
 
-let rec ovij = ()
+let ovij oznaka vsebina = "<" ^ oznaka ^ ">" ^ vsebina ^ "</" ^ oznaka ^ ">" 
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `zamakni : int -> string -> string`, ki sprejme število 
@@ -64,8 +72,6 @@ Primer:
 `zamakni 4 "Hello, world!"`
 
 [*----------------------------------------------------------------------------*)
-
-let rec zamakni = ()
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `ul : string list -> string`, ki sprejme seznam nizov in vrne 
@@ -86,8 +92,11 @@ Primer:
 `razdeli_vrstico "mleko, 2"`
 
 [*----------------------------------------------------------------------------*)
-
-let rec razdeli_vrstico = ()
+let razdeli_vrstico vrstica =
+    let indeks = String.index vrstica ',' in
+    let prvi = String.sub vrstica 0 indeks
+    and drugi = String.sub vrstica (indeks + 1) (String.length vrstica - indeks - 1) in
+    (String.trim prvi, String.trim drugi)
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `pretvori_v_seznam_parov : string -> (string * string) list`, 
@@ -98,9 +107,10 @@ Primer:
 `pretvori_v_seznam_parov "mleko, 2\nkruh, 1\njabolko, 5"`
 
 [*----------------------------------------------------------------------------*)
-
-let rec pretvori_v_seznam_parov = ()
-
+let pretvori_v_seznam_parov niz =
+    niz
+    |> String.split_on_char '\n'
+    |> List.map razdeli_vrstico
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `pretvori_druge_komponente : ('a -> 'b) -> (string * 'a) list -> (string * 'b) list`,
 ki dano funkcijo uporabi na vseh drugih komponentah elementov seznama.
@@ -113,7 +123,7 @@ pretvori_druge_komponente String.length seznam
 
 [*----------------------------------------------------------------------------*)
 
-let rec pretvori_druge_komponente = ()
+let pretvori_druge_komponente f = List.map(fun (x, y) -> (x, f y))
 
 (*----------------------------------------------------------------------------*]
 Napišite funkcijo `izracunaj_skupni_znesek : string -> string -> float`, ki 
