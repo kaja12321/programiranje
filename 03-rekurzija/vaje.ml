@@ -4,7 +4,13 @@
  Definirajte pomožno funkcijo za obračanje seznamov.
 [*----------------------------------------------------------------------------*)
 
-let rec reverse = ()
+let obracanje sez = 
+  let rec reverse sez nalaganje = 
+    match sez with
+    | [] -> nalaganje
+    | x :: xs -> reverse xs (x :: nalaganje)
+  in
+  reverse sez []
 
 (*----------------------------------------------------------------------------*]
  Funkcija [repeat x n] vrne seznam [n] ponovitev vrednosti [x]. Za neprimerne
@@ -16,7 +22,9 @@ let rec reverse = ()
  - : string list = []
 [*----------------------------------------------------------------------------*)
 
-let rec repeat = ()
+let rec repeat x n =
+  if n <=0 then []
+  else x :: repeat x (n-1)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [range] sprejme število in vrne seznam vseh celih števil od 0 do
@@ -28,7 +36,13 @@ Pri tem ne smete uporabbiti vgrajene funkcije [List.init].
  - : int list = [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10]
 [*----------------------------------------------------------------------------*)
 
-let rec range = ()
+let rangee n = 
+
+  let rec range n nalaganja = 
+    if n < 0 then nalaganja
+    else range (n-1) (n :: nalaganja)
+  in
+  range n []
 
 (*----------------------------------------------------------------------------*]
  Funkcija [map f list] sprejme seznam [list] oblike [x0; x1; x2; ...] in
@@ -41,7 +55,10 @@ let rec range = ()
  - : int list = [2; 3; 4; 5; 6]
 [*----------------------------------------------------------------------------*)
 
-let rec map = ()
+let rec map funkcija seznam =
+  match seznam with
+  | [] -> []
+  | x :: xs -> funkcija x :: map funkcija xs
 
 (*----------------------------------------------------------------------------*]
  Časovna zahtevnost operatorja [@] je linearna v prvem argumentu, poskušajte 
@@ -59,7 +76,14 @@ let rec reverse_tlrec = ()
  - : int list = [2; 3; 4; 5; 6]
 [*----------------------------------------------------------------------------*)
 
-let rec map_tlrec = ()
+let rec map_tlrec funkcija seznam = 
+  let rec map_boljsa seznam nalaganja = 
+    match seznam with
+    | [] -> obracanje nalaganja
+    | x :: xs -> map_boljsa xs (funkcija x :: nalaganja)
+  in 
+  map_boljsa seznam []
+
 
 (*----------------------------------------------------------------------------*]
  Funkcija [mapi] je ekvivalentna python kodi:
@@ -91,7 +115,11 @@ let rec mapi = ()
  Exception: Failure "Different lengths of input lists.".
 [*----------------------------------------------------------------------------*)
 
-let rec zip = ()
+let rec zip sez1 sez2 = 
+  match sez1, sez2 with
+  | [], [] -> []
+  | _, [] | [], _ -> failwith "Napaka"
+  | x :: xs, y :: ys -> (x, y) :: zip xs ys
 
 (*----------------------------------------------------------------------------*]
  Funkcija [unzip] je inverz funkcije [zip], torej sprejme seznam parov
@@ -102,7 +130,21 @@ let rec zip = ()
  - : int list * string list = ([0; 1; 2], ["a"; "b"; "c"])
 [*----------------------------------------------------------------------------*)
 
-let rec unzip = ()
+let rec unzipx sez = 
+  match sez with
+  | [] -> []
+  | [(x, y)] -> [x]
+  | (x, y) :: ostalo -> x :: unzipx ostalo
+
+
+let rec unzipy sez = 
+  match sez with
+  | [] -> []
+  | [(x, y)] -> [y]
+  | (x, y) :: ostalo -> y :: unzipy ostalo
+
+let rec unzip sez =
+  (unzipx sez, unzipy sez)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [unzip_tlrec] je repno rekurzivna različica funkcije [unzip].
@@ -111,8 +153,13 @@ let rec unzip = ()
  - : int list * string list = ([0; 1; 2], ["a"; "b"; "c"])
 [*----------------------------------------------------------------------------*)
 
-let rec unzip_tlrec = ()
-
+let unzip_tlrec list =
+  let rec unzip_aux list acc1 acc2 =
+    match list with
+    | [] -> (obracanje acc1, obracanje acc2)
+    | (x, y) :: tl -> unzip_aux tl (x :: acc1) (y :: acc2)
+  in
+  unzip_aux list [] []
 (*----------------------------------------------------------------------------*]
  Funkcija [loop condition f x] naj se izvede kot python koda:
 
