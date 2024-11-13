@@ -16,11 +16,23 @@
  za baze, ki so večje od $10$, uporabimo števke od $0$ do $b - 1$.
 [*----------------------------------------------------------------------------*)
 
-let rec stevke baza stevilo = 
-  let rec stevke_tlrec baza stevilo nalaganja =
+
+let stevke baza stevilo = 
+
+  if (baza <= 0 || stevilo <= 0) then failwith "b in n morata biti pozitivni celi števili."
+
+  else if baza = 1 then
+    let rec eniski_sistem stevilo acc = 
+      match stevilo with
+      | 0 -> acc
+      | _ -> eniski_sistem (stevilo - 1) (0 :: acc)  in
+    eniski_sistem stevilo []
+
+  else
+  let rec stevke_tlrec baza stevilo acc =
     match stevilo with
-    | 0 -> nalaganja
-    | _ -> stevke_tlrec baza (stevilo / baza) (stevilo mod baza :: nalaganja) in
+    | 0 -> acc
+    | _ -> stevke_tlrec baza (stevilo / baza) (stevilo mod baza :: acc) in
   stevke_tlrec baza stevilo []
   
   
@@ -45,13 +57,27 @@ let primer_1_3 = stevke 16 (3 * 16 * 16 * 16 + 14 * 16 * 16 + 15 * 16 + 9)
  seznam.
 [*----------------------------------------------------------------------------*)
 
-let rec take stevilo seznam =
-  if List.length seznam <= stevilo then seznam
-  else if stevilo = 0 then []
+let take stevilo seznam = 
+
+  let rec take_tlrec stevilo seznam acc =
+
+    if stevilo <= 0 then failwith "Izberite število iz množice naravnih števil."
+
+    else if List.length seznam <= stevilo then List.rev seznam
+
+    else if stevilo = 1 then 
+      match seznam with 
+      | [] -> []
+      | prvi :: ostalo -> prvi :: acc
+
     else 
       match seznam with
-      | [] -> []
-      | prvi :: ostalo -> prvi :: take (stevilo - 1) ostalo
+      | [] -> acc
+      | prvi :: ostalo -> take_tlrec (stevilo - 1) ostalo (prvi :: acc) in
+  
+  List.rev (take_tlrec stevilo seznam [])
+
+
 
 let primer_1_4 = take 3 [1; 2; 3; 4; 5]
 (* val primer_1_4 : int list = [1; 2; 3] *)
@@ -68,10 +94,11 @@ let primer_1_5 = take 10 [1; 2; 3; 4; 5]
  začetka seznama odstrani vse elemente, ki zadoščajo danemu predikatu. Ko najde
  element, ki predikatu ne zadošča, vrne preostanek seznama.
 [*----------------------------------------------------------------------------*)
+
 let rec drop_while funkcija seznam = 
   match seznam with
-  |[] -> []
-  |prvi :: ostalo -> if funkcija prvi then drop_while funkcija ostalo else seznam
+  | [] -> []
+  | prvi :: ostalo -> if funkcija prvi then (drop_while funkcija ostalo) else seznam
   
 
 let primer_1_6 = drop_while (fun x -> x < 5) [3; 1; 4; 1; 5; 9; 2; 6; 5; 3; 5]
@@ -90,7 +117,21 @@ let primer_1_7 = drop_while (fun x -> x < 5) [9; 8; 7; 6; 5; 4; 3; 2; 1; 0]
  še njihove indekse.
 [*----------------------------------------------------------------------------*)
 
-let filter_mapi _ _ = ()
+let filter_mapi funkcija seznam = 
+
+  let rec ustrezni_indeksi funkcija seznam acc = 
+
+    (*za lažje delo z indeksi obrnemo seznam*)
+    let obrnjen_seznam = List.rev seznam in 
+
+    match obrnjen_seznam with
+    |[] -> List.rev acc
+    |prvi :: ostalo -> ustrezni_indeksi funkcija (List.rev ostalo) ((funkcija (List.length obrnjen_seznam - 1) prvi) :: acc)
+  
+  in
+
+  List.rev (List.filter_map (fun x -> x) (ustrezni_indeksi funkcija seznam []))
+  
 
 let primer_1_8 =
   filter_mapi
@@ -126,50 +167,90 @@ type ('a, 'b) sum = In1 of 'a | In2 of 'b
  ### $A \times B \cong B \times A$
 [*----------------------------------------------------------------------------*)
 
-let phi1 _ = ()
-let psi1 _ = ()
+
+let phi1 ((x, y) : ('a * 'b)) : 'b * 'a = (y, x)
+
+
+let psi1 ((y, x) : 'b * 'a) : 'a * 'b = (x, y)
 
 (*----------------------------------------------------------------------------*
  ### $A + B \cong B + A$
 [*----------------------------------------------------------------------------*)
 
-let phi2 _ = ()
-let psi2 _ = ()
+let phi2 (x : ('a, 'b) sum) : ('b, 'a) sum = 
+  match x with
+  | In1 a -> In2 a
+  | In2 a -> In1 a
+
+let psi2 (x : ('b, 'a) sum) : ('a, 'b) sum = 
+  match x with
+  | In1 a -> In2 a
+  | In2 a -> In1 a
 
 (*----------------------------------------------------------------------------*
  ### $A \times (B \times C) \cong (A \times B) \times C$
 [*----------------------------------------------------------------------------*)
 
-let phi3 _ = ()
-let psi3 _ = ()
+let phi3 ((x, (y, z)) : 'a * ('b * 'c)) : ('a * 'b) * 'c = ((x, y), z)
+
+let psi3 (((x, y), z) : ('a * 'b) * 'c) : 'a * ('b * 'c) = (x, (y, z))
 
 (*----------------------------------------------------------------------------*
  ### $A + (B + C) \cong (A + B) + C$
 [*----------------------------------------------------------------------------*)
 
-let phi4 _ = ()
-let psi4 _ = ()
+let phi4 (x : ('a, ('b, 'c) sum) sum) : (('a, 'b) sum, 'c) sum =
+  match x with
+  | In1 s -> In1 (In1 s)
+  | In2 (In1 s) -> In1 (In2 s)
+  | In2 (In2 s) -> In2 s
 
+let psi4 (x : (('a, 'b) sum, 'c) sum) : ('a, ('b, 'c) sum) sum = 
+  match x with
+  | In1 (In1 s) -> In1 s
+  | In1 (In2 s) -> In2 (In1 s)
+  | In2 s -> In2 (In2 s)
 (*----------------------------------------------------------------------------*
  ### $A \times (B + C) \cong (A \times B) + (A \times C)$
 [*----------------------------------------------------------------------------*)
 
-let phi5 _ = ()
-let psi5 _ = ()
+let phi5 (x : 'a * ('b, 'c) sum) : ('a * 'b, 'a * 'c) sum =
+  match x with
+  | (a, In1 b) -> In1 (a, b)
+  | (a, In2 c) -> In2 (a, c)
+  
+let psi5 (x : ('a * 'b, 'a * 'c) sum) : 'a * ('b, 'c) sum = 
+  match x with
+  | In1 (a, b) -> (a, In1 b)
+  | In2 (a, c) -> (a, In2 c)
 
 (*----------------------------------------------------------------------------*
  ### $A^{B + C} \cong A^B \times A^C$
 [*----------------------------------------------------------------------------*)
 
-let phi6 _ = ()
-let psi6 _ = ()
+let phi6 (f : (('b, 'c) sum -> 'a)) : (('b -> 'a) * ('c -> 'a)) = 
+  ((fun b -> f (In1 b)), (fun c -> f (In2 c)))
+  
+
+let psi6 ((f, g) : (('b -> 'a) * ('c -> 'a))) : (('b, 'c) sum -> 'a) =
+  function x -> 
+    match x with 
+    |In1 b -> f b 
+    |In2 c -> g c
+
 
 (*----------------------------------------------------------------------------*
  ### $(A \times B)^C \cong A^C \times B^C$
 [*----------------------------------------------------------------------------*)
 
-let phi7 _ = ()
-let psi7 _ = ()
+
+let phi7 (f : ('c -> ('a * 'b))) : ('c -> 'a) * ('c -> 'b) =
+  ((fun x -> fst (f x)), (fun x -> snd (f x)))
+
+
+let psi7 ((f, g) : ('c -> 'a) * ('c -> 'b)) : ('c -> ('a * 'b)) = 
+  fun x -> (f x, g x)
+
 
 (*----------------------------------------------------------------------------*
  ## Polinomi
@@ -192,7 +273,7 @@ type polinom = int list
  koeficientov odstrani odvečne ničle.
 [*----------------------------------------------------------------------------*)
 
-let pocisti seznam = 
+let pocisti (seznam : polinom) : polinom = 
   drop_while (fun x -> x = 0) (List.rev seznam) |> List.rev
 
 let primer_3_1 = pocisti [1; -2; 3; 0; 0]
@@ -207,16 +288,17 @@ let primer_3_1 = pocisti [1; -2; 3; 0; 0]
  polinoma.
 [*----------------------------------------------------------------------------*)
 
-(*REVERSAJ VSE SKUP PA BI MOGLO DELAT*)
+let ( +++ ) (sez1 : polinom) (sez2 : polinom) : polinom =
 
-let rec ( +++ ) sez1 sez2 = 
-match sez1, sez2 with
-|[], [] -> []
-| _, [] -> sez1
-| [], _ -> sez2
-| prvi :: ostalo, zacetni :: preostanek -> (prvi + zacetni) :: ( +++ ) ostalo preostanek
-
-
+  let rec sestevanje sez1 sez2 acc =
+    match sez1, sez2 with
+    |[], [] -> List.rev acc
+    | prvi :: ostalo , [] -> sestevanje  ostalo [] (prvi :: acc)
+    | [], zacetni :: preostanek -> sestevanje [] preostanek (zacetni :: acc) 
+    | prvi :: ostalo, zacetni :: preostanek -> sestevanje ostalo preostanek ((prvi + zacetni) :: acc)
+  in
+  
+  pocisti (sestevanje sez1 sez2 [])
 
 
 let primer_3_2 = [1; -2; 3] +++ [1; 2]
@@ -234,7 +316,21 @@ let primer_3_3 = [1; -2; 3] +++ [1; 2; -3]
  polinoma.
 [*----------------------------------------------------------------------------*)
 
-let ( *** ) _ _ = ()
+let ( *** ) (p1 : polinom) (p2 : polinom) : polinom = 
+
+  let rec mnozenje (p1 : polinom) (p2 : polinom) : polinom =
+    
+    let seznam_nicel polinom = 
+      List.init (List.length polinom - 1) (fun x -> 0) in
+
+    match List.rev p1 with
+    | [] -> []
+    | zadnji :: ostalo -> ((seznam_nicel p1) @ List.map (fun x -> zadnji * x) p2 ) +++ ( mnozenje (List.rev ostalo) p2) 
+  
+  in
+
+  pocisti (mnozenje p1 p2)
+    
 
 let primer_3_4 = [1; 1] *** [1; 1] *** [1; 1]
 (* val primer_3_4 : int list = [1; 3; 3; 1] *)
@@ -251,12 +347,13 @@ let primer_3_5 = [1; 1] *** [1; -1]
  polinoma v danem argumentu.
 [*----------------------------------------------------------------------------*)
 
-let rec vrednost1 polinom tocka = 
-  match polinom with
-  |[] -> 0
-  |prvi :: ostalo -> prvi + tocka * (vrednost1 ostalo tocka)
+let rec vrednost_polinoma (seznam : polinom) tocka = 
+  match seznam with
+  | [] -> 0
+  | prvi :: ostalo -> prvi + tocka * (vrednost_polinoma ostalo tocka)
 
-let primer_3_6 = vrednost1 [1; -2; 3] 2
+
+let primer_3_6 = vrednost_polinoma [1; -2; 3] 2
 (* val primer_3_6 : int = 9 *)
 
 (*----------------------------------------------------------------------------*
@@ -267,15 +364,18 @@ let primer_3_6 = vrednost1 [1; -2; 3] 2
  Napišite funkcijo `odvod : polinom -> polinom`, ki izračuna odvod polinoma.
 [*----------------------------------------------------------------------------*)
 
-(* nekaj reversat al nekaj, pocisti nicle*)
-let rec odvod1 polinom =
-  match polinom with
-  | [] -> []
-  | prvi :: ostalo -> ((List.length polinom - 1) * prvi) :: (odvod1 ostalo)
+let rec odvod_polinoma (seznam : polinom) : polinom =
 
+  let rec odvajanje_tlrec seznam acc = 
+    match (List.rev seznam) with
+    | [] -> []
+    | [a] -> acc
+    | prvi :: ostalo -> odvajanje_tlrec (List.rev ostalo) (((List.length seznam - 1) * prvi) :: acc)
+  in
 
-
-let primer_3_7 = odvod1 [1; -2; 3]
+  pocisti (odvajanje_tlrec seznam [])
+  
+let primer_3_7 = odvod_polinoma [1; -2; 3]
 (* val primer_3_7 : int list = [-2; 6] *)
 
 (*----------------------------------------------------------------------------*
@@ -288,7 +388,74 @@ let primer_3_7 = odvod1 [1; -2; 3]
  - 2 x + 1"`. Pozorni bodite, da izpis začnete z vodilnim členom.
 [*----------------------------------------------------------------------------*)
 
-let izpis _ = ()
+let izpis (polinom : polinom)= 
+
+  (* Funkcija, ki izpiše ustrezne eksponente. *)
+  let superscript stevilo = 
+
+    let rec superscript_tlrec stevilo acc = 
+
+      let seznam_nadpisanih = ["\u{2070}"; "\u{00B9}"; "\u{00B2}"; "\u{00B3}"; "\u{2074}"; "\u{2075}"; "\u{2076}"; "\u{2077}"; "\u{2078}"; "\u{2079}"] in
+        
+      let niz = string_of_int stevilo in
+      let dolzina = String.length niz in
+
+      match niz with
+      | "0" -> acc
+      | _ -> superscript_tlrec (stevilo / 10)  (List.nth seznam_nadpisanih (int_of_string (String.sub niz (dolzina - 1) 1)) ^ acc)
+    
+    in
+
+    superscript_tlrec stevilo ""
+
+  in
+
+    
+  (* Funkcija, ki izpiše ustrezne koeficiente. *)
+
+  let koeficient stevilo = 
+
+    match stevilo with
+    | 0 -> ""
+    | 1 -> " +"
+    | -1 -> " -"
+    | a -> if a > 0 then " + " ^ string_of_int a else " - " ^ string_of_int (-a)
+
+  in
+
+  (* Funkcija, ki iz začetka polinoma izbriše odvečne presledke in popravi predznak. *)
+
+  let zacetek_polinoma izpisano = 
+
+    let zacetek = String.sub izpisano 0 3 in
+    let konec = String.sub izpisano 3 (String.length izpisano - 3) in 
+
+    match zacetek with
+    | " + " -> "" ^ konec
+    | " - " -> "-" ^ konec
+    | _  -> "Napaka"
+  
+  in
+
+  (* Izpis polinoma  *)
+  let rec izpis_tlrec polinom acc = 
+
+    match (List.rev polinom) with
+    | [] -> acc
+    | 0 :: ostalo -> izpis_tlrec (List.rev ostalo) acc
+    | [1] -> acc ^ " + 1"
+    | [-1] -> acc ^ " - 1"
+    | [a] -> acc ^ (koeficient a)
+    | [a; 0] -> acc ^ (koeficient a) ^ " x" 
+    | [a; 1] -> acc ^ (koeficient a) ^ " x" ^ " + 1"
+    | [a; -1] -> acc ^ (koeficient a) ^ " x" ^ " - 1"
+    | [a; b] -> acc ^ (koeficient a) ^ " x" ^ (koeficient b)
+    | vodilni :: ostalo -> izpis_tlrec (List.rev ostalo) (acc ^ (koeficient vodilni) ^ " x" ^ superscript (List.length polinom - 1))
+  
+  in
+
+  zacetek_polinoma (izpis_tlrec polinom "")
+  
 
 let primer_3_8 = izpis [1; 2; 1]
 (* val primer_3_8 : string = "x² + 2 x + 1" *)
@@ -359,9 +526,8 @@ let primer_4_2 =
  odvoda v danem argumentu.
 [*----------------------------------------------------------------------------*)
 
-(* to je probably tak wrong *)
-let vrednost (funkcija, odvod) argument = funkcija argument 
-let odvod (funkcija, odvod) argument = odvod argument
+let vrednost ((funkcija, odvod) : odvedljiva) (argument : float) : float = funkcija argument 
+let odvod ((funkcija, odvod) : odvedljiva) (argument : float) : float = odvod argument
 
 (*----------------------------------------------------------------------------*
  ### Osnovne funkcije
@@ -372,7 +538,7 @@ let odvod (funkcija, odvod) argument = odvod argument
  odvedljiva`, ki predstavljata konstantno in identično funkcijo.
 [*----------------------------------------------------------------------------*)
 
-let konstanta (c : float) :odvedljiva = ((fun x -> c), (fun x -> 0.))
+let konstanta (c : float) : odvedljiva = ((fun x -> c), (fun x -> 0.))
 let identiteta : odvedljiva = ((fun x -> x), (fun x -> 1.))
 
 (*----------------------------------------------------------------------------*
@@ -385,7 +551,13 @@ let identiteta : odvedljiva = ((fun x -> x), (fun x -> 1.))
  kvocient dveh odvedljivih funkcij.
 [*----------------------------------------------------------------------------*)
 
-let ( **. ) _ _ = ()
+let ( **. ) : odvedljiva -> odvedljiva -> odvedljiva = 
+  fun (f, f') (g, g') -> 
+    ((fun x -> (f x) *. (g x)), (fun x -> ((f' x) *. (g x))  +. ((g' x) *. (f x))))
+
+let ( //. ) : odvedljiva -> odvedljiva -> odvedljiva = 
+  fun (f, f') (g, g') ->    
+    ((fun x -> (f x) /. (g x)), (fun x -> (((f' x) *. (g x))  -. ((g' x) *. (f x))) /. (g x) ** 2. ))
 
 let kvadrat = identiteta **. identiteta
 (* val kvadrat : odvedljiva = (<fun>, <fun>) *)
@@ -399,18 +571,19 @@ let kvadrat = identiteta **. identiteta
  predstavlja kompozitum dveh odvedljivih funkcij.
 [*----------------------------------------------------------------------------*)
 
-let ( @@. ) _ _ = ()
+let ( @@. ) : odvedljiva -> odvedljiva -> odvedljiva = 
+  fun (f, f') (g, g') -> ((fun x -> f (g x)), (fun x -> (f' (g x)) *. (g' x)))
 
 (* POZOR: Primer je zaenkrat zakomentiran, saj ob prazni rešitvi nima tipa *)
-(* let vedno_ena = (kvadrat @@. sinus) ++. (kvadrat @@. kosinus) *)
+ let vedno_ena = (kvadrat @@. sinus) ++. (kvadrat @@. kosinus) 
 (* val vedno_ena : odvedljiva = (<fun>, <fun>) *)
 
 (* POZOR: Primer je zaenkrat zakomentiran, saj brez vedno_ena ne deluje *)
-(* let primer_4_3 = vrednost vedno_ena 12345. *)
+ let primer_4_3 = vrednost vedno_ena 12345. 
 (* val primer_4_3 : float = 0.999999999999999889 *)
 
 (* POZOR: Primer je zaenkrat zakomentiran, saj brez vedno_ena ne deluje *)
-(* let primer_4_4 = odvod vedno_ena 12345. *)
+ let primer_4_4 = odvod vedno_ena 12345. 
 (* val primer_4_4 : float = 0. *)
 
 (*----------------------------------------------------------------------------*
@@ -455,14 +628,27 @@ let crka i = Char.chr (i + Char.code 'A')
  z danim ključem. Vse znake, ki niso velike tiskane črke, pustimo pri miru.
 [*----------------------------------------------------------------------------*)
 
-let sifriraj _ _ = ()
-  (*match besedilo with
-  |"" -> ""
-  |h :: t -> h ^ sifriraj kljuc t idk kak to naret*)
 
-let sifriraj_znak kljuc znak = 
-  let abeceda = "abcdefghijklmnopqrstuvwxyz" in
-  abeceda
+let sifriraj kljuc besedilo =
+  
+  let menjaj_znak kljuc znak =
+    if ((0 <= indeks znak) && (indeks znak <= 25)) then kljuc.[indeks znak]
+    else znak
+  in
+  
+  let rec sifriraj_tlrec kljuc besedilo acc = 
+
+    match besedilo with
+    | "" -> acc
+    | _ ->  
+      let zamenjan_znak = menjaj_znak kljuc besedilo.[0] in
+      let besedilo_brez_prvega = String.sub besedilo 1 (String.length besedilo - 1) in
+
+      sifriraj_tlrec kljuc besedilo_brez_prvega (acc ^ (String.make 1 zamenjan_znak))
+  
+  in
+
+  sifriraj_tlrec kljuc besedilo ""
 
 
 let primer_5_1 = sifriraj quick_brown_fox "HELLO, WORLD!"
@@ -483,7 +669,25 @@ let primer_5_3 = "VENI, VIDI, VICI" |> sifriraj rot13 |> sifriraj rot13
  inverz.
 [*----------------------------------------------------------------------------*)
 
-let inverz _ = ()
+
+let inverz kljuc = 
+
+  let rec prevedi_nazaj kljuc besedilo acc =
+
+    match besedilo with
+    | "" -> acc
+    | _ ->  
+      (* Prvi znak v besedilu spremenimo v string in definiramo besedilo brez prvega znaka. *)
+      let str_prva_crka = crka (String.index_from kljuc 0 (besedilo.[0])) |> String.make 1 in
+      let preostanek = String.sub besedilo 1 (String.length besedilo - 1) in 
+      prevedi_nazaj kljuc preostanek (acc ^ str_prva_crka) 
+  
+  in
+      
+  let dolzina = String.length kljuc in
+
+  prevedi_nazaj kljuc (String.sub "ABCDEFGHIJKLMNOPQRSTUVWXYZ" 0 dolzina) ""
+
 
 let primer_5_4 = inverz quick_brown_fox
 (* val primer_5_4 : string = "VIGYCMZBFOHUPLSQDJRAETKNXW" *)
@@ -514,7 +718,7 @@ let besede = "the of to and a in is it you that he was for on are with as i his 
  pretvorjene v velike tiskane črke.
 [*----------------------------------------------------------------------------*)
 
-let slovar = []
+let slovar = String.split_on_char ' ' (String.uppercase_ascii besede)
 
 let primer_5_7 = take 42 slovar
 (* val primer_5_7 : string list =
@@ -524,7 +728,7 @@ let primer_5_7 = take 42 slovar
    "SOME"; "WE"; "CAN"; "OUT"; "OTHER"; "WERE"; "ALL"; "THERE"; "WHEN"; "UP"] *)
 
 (* POZOR: Primer je zaenkrat zakomentiran, saj ob prazni rešitvi sproži izjemo *)
-(* let primer_5_8 = List.nth slovar 321 *)
+let primer_5_8 = List.nth slovar 321
 (* val primer_5_8 : string = "MEASURE" *)
 
 (*----------------------------------------------------------------------------*
@@ -544,7 +748,24 @@ let primer_5_7 = take 42 slovar
  črkama).
 [*----------------------------------------------------------------------------*)
 
-let dodaj_zamenjavo _ _ = ()
+
+let dodaj_zamenjavo kljuc (zamenjava : char * char) = 
+
+  let original = fst zamenjava in
+  let pozicija = indeks original in
+  let slika = snd zamenjava in
+  let dolzina = String.length kljuc - pozicija - 1 in 
+
+  
+  if ((0 <= indeks original) && (indeks original <= 25) && (0 <= indeks slika) && (indeks slika <= 25)) then
+  
+  if kljuc.[pozicija] = slika then Some kljuc
+  else if (String.contains kljuc slika) then None
+  else if kljuc.[pozicija] != '_' then None
+  else Some ((String.sub kljuc 0 (pozicija)) ^ (String.make 1 slika) ^ (String.sub kljuc (pozicija + 1) dolzina))
+
+  else None
+ 
 
 let primer_5_9 = dodaj_zamenjavo "AB__E" ('C', 'X')
 (* val primer_5_9 : string option = Some "ABX_E" *)
@@ -565,7 +786,125 @@ let primer_5_11 = dodaj_zamenjavo "ABY_E" ('C', 'E')
  prvo besedo preslikajo v drugo.
 [*----------------------------------------------------------------------------*)
 
-let dodaj_zamenjave _ _ = ()
+
+(* Funkcija, ki odstrani vse, kar niso velike tiskane črke in presledki. *)
+let odstrani_znake beseda =
+    
+  let rec odstrani_znake_tlrec beseda acc = 
+
+    if beseda = "" then acc
+
+    else
+    let prvi_znak = beseda.[0] in
+    let ostalo = String.sub beseda 1 (String.length beseda - 1) in
+    
+    if (0 <= indeks prvi_znak) && (indeks prvi_znak <= 25) then (odstrani_znake_tlrec ostalo (acc ^ (String.make 1 prvi_znak)))
+    else if (prvi_znak = ' ') then (odstrani_znake_tlrec ostalo (acc ^ (String.make 1 prvi_znak)))
+    else (odstrani_znake_tlrec ostalo acc)
+
+  in
+  odstrani_znake_tlrec beseda ""
+
+
+(* Funkcija, ki odstrani vse, kar niso velike tiskane črke ali apostrof. *)
+let skoraj_odstrani_znake beseda =
+    
+  let rec odstrani_znake_tlrec beseda acc = 
+
+    if beseda = "" then acc
+
+    else
+    let prvi_znak = beseda.[0] in
+    let ostalo = String.sub beseda 1 (String.length beseda - 1) in
+    
+    if (0 <= indeks prvi_znak) && (indeks prvi_znak <= 25) then (odstrani_znake_tlrec ostalo (acc ^ (String.make 1 prvi_znak)))
+    else if (prvi_znak = '\'' || prvi_znak = ' ') then (odstrani_znake_tlrec ostalo (acc ^ (String.make 1 prvi_znak)))
+    else (odstrani_znake_tlrec ostalo acc)
+
+  in
+  odstrani_znake_tlrec beseda ""
+
+
+
+(* Definiramo funkcijo, ki nam pove, če sta besedi v zamenjavi ustrezne oblike, to je brez ločil, ' se slika v ' itd. *)
+
+let rec izberi_ustrezne_pare beseda1 beseda2 =
+
+  (* Znake v besedi spremenimo v 0, če je velika tiskana črka, v 1, če je apostrof in v 2 v ostalih primerih. *)
+  let spremeni_v_stevilke beseda = 
+
+    let rec spremeni_v_stevilke_tlrec beseda acc = 
+
+      if beseda = "" then acc
+      
+      else
+      
+      let prvi = beseda.[0] in
+      let ostali = String.sub beseda 1 (String.length beseda - 1) in
+
+      if ((0 <= indeks prvi) && (indeks prvi <= 25)) then (spremeni_v_stevilke_tlrec ostali (acc ^ "0"))
+      else if prvi = '\'' then (spremeni_v_stevilke_tlrec ostali (acc ^ "1"))
+      else (spremeni_v_stevilke_tlrec ostali (acc ^ "2"))
+    
+    in
+    spremeni_v_stevilke_tlrec beseda ""
+
+  in
+
+
+  (* Iščemo besede, ki so sestavljene samo iz velikih tiskanih črk in apostrofov. *)
+
+  let izberi_ustrezne beseda = 
+
+      let zakodirano = spremeni_v_stevilke beseda in
+
+      if String.contains zakodirano '2'  then None
+      else if String.contains zakodirano '1' then Some beseda
+      else Some beseda
+
+  in
+
+  if (izberi_ustrezne beseda1 != None && izberi_ustrezne beseda2 != None 
+    && (spremeni_v_stevilke beseda1 = spremeni_v_stevilke beseda2)) then true
+  else false
+
+
+  
+  
+(* Definiramo funkcijo, ki string option pretvori v string. *)
+let option_to_string str_opt = 
+  match str_opt with
+  | None -> ""
+  | Some str -> str 
+
+(* Definiramo funkcijo dodaj_zamenjave. *)
+let rec dodaj_zamenjave kljuc zamenjave = 
+
+  let original = fst zamenjave in
+  let slika = snd zamenjave in
+   
+  if (String.length original <> String.length slika) then None
+  else if (izberi_ustrezne_pare original slika = false) then None
+
+  else
+  
+    let original_crke = odstrani_znake (original) in
+    let slika_crke = odstrani_znake (slika) in
+    
+    let dolzina = String.length original_crke in
+
+    let (zacetek1, zacetek2) = (original_crke.[0], slika_crke.[0]) in
+    let (konec1, konec2) = ((String.sub original_crke 1 (dolzina - 1)), (String.sub slika_crke 1 (dolzina - 1))) in
+    
+    if (konec1, konec2) = ("","") then dodaj_zamenjavo kljuc (zacetek1, zacetek2)
+
+    else
+    
+    match dodaj_zamenjavo kljuc (zacetek1, zacetek2) with
+    | None -> None
+    | Some str -> dodaj_zamenjave (option_to_string (dodaj_zamenjavo kljuc (zacetek1, zacetek2))) (konec1, konec2)
+  
+
 
 let primer_5_12 = dodaj_zamenjave "__________________________" ("HELLO", "KUNNJ")
 (* val primer_5_12 : string option = Some "____U__K___N__J___________" *)
@@ -587,7 +926,21 @@ let primer_5_14 = dodaj_zamenjave "ABCDE_____________________" ("HELLO", "KUNNJ"
  od besed v slovarju.
 [*----------------------------------------------------------------------------*)
 
-let mozne_razsiritve _ _ _ = []
+
+let mozne_razsiritve kljuc beseda seznam_besed =
+
+  let rec mozne_razsiritve_tlrec kljuc beseda seznam_besed acc =
+
+    match seznam_besed with
+    | [] -> List.rev acc
+    | prva :: ostalo -> 
+        match (dodaj_zamenjave kljuc (skoraj_odstrani_znake beseda, prva)) with
+        | None -> mozne_razsiritve_tlrec kljuc beseda ostalo acc
+        | Some str -> (mozne_razsiritve_tlrec kljuc beseda ostalo (str :: acc))  
+
+  in
+  mozne_razsiritve_tlrec kljuc beseda seznam_besed []
+
 
 let primer_5_15 =
   slovar
@@ -617,10 +970,98 @@ let primer_5_15 =
  vrne `None`, če ni mogoče najti nobenega ustreznega ključa.
 [*----------------------------------------------------------------------------*)
 
-let odsifriraj _ = ()
+(* Za znake, ki niso velike tiskane črke vemo, da se slikajo sami vase. Čeprav je beseda "." v slovarju, ne upoštevamo možnosti, da se neka črka slika v ".". *)
+
+(* Za boljšo učinkovitost definiramo funkciji dodaj_zamenjavo in mozne_razsiritve, pri čimer predpostavimo, da so besede sestavljene le iz velikih tiskanih črk. *)
+
+let rec dodaj_zamenjave_hitreje kljuc zamenjave = 
+
+  let original = fst zamenjave in
+  let slika = snd zamenjave in
+  
+  (* Namesto da besedilo šifriramo v številke le preverimo, če je prave dolžine. *)
+  if (String.length original <> String.length slika) then None
+
+  else
+  
+    let original_crke = odstrani_znake (original) in
+    let slika_crke = odstrani_znake (slika) in
+    
+    let dolzina = String.length original_crke in
+
+    let (zacetek1, zacetek2) = (original_crke.[0], slika_crke.[0]) in
+    let (konec1, konec2) = ((String.sub original_crke 1 (dolzina - 1)), (String.sub slika_crke 1 (dolzina - 1))) in
+    
+    if (konec1, konec2) = ("","") then dodaj_zamenjavo kljuc (zacetek1, zacetek2)
+
+    else
+    
+    match dodaj_zamenjavo kljuc (zacetek1, zacetek2) with
+    | None -> None
+    | Some str -> dodaj_zamenjave (option_to_string (dodaj_zamenjavo kljuc (zacetek1, zacetek2))) (konec1, konec2)
+
+
+  let mozne_razsiritve_hitreje kljuc beseda seznam_besed =
+
+    (* V slovarju, ki ga bomo uporabili za odsifriranje je ".". Ker smo predostavili, da so samo velike tiskane črke, jo obravnavamo posebej. *)
+
+    let rec mozne_razsiritve_tlrec kljuc beseda seznam_besed acc =
+    
+      match seznam_besed with
+      | [] -> List.rev acc
+      | prva :: ostalo -> 
+          if prva = "." then mozne_razsiritve_tlrec kljuc beseda ostalo acc
+          else
+            match (dodaj_zamenjave kljuc (skoraj_odstrani_znake beseda, prva)) with
+            | None -> mozne_razsiritve_tlrec kljuc beseda ostalo acc
+            | Some str -> (mozne_razsiritve_tlrec kljuc beseda ostalo (str :: acc))  
+      
+    in
+     mozne_razsiritve_tlrec kljuc beseda seznam_besed []
+
+
+let odsifriraj stavek =
+
+  (* Seznam vseh možnih zamenjav *)
+  let mozne_zamenjave_seznam seznam_kljucev beseda = 
+    List.map (fun kljuc -> 
+      if String.contains beseda '\'' then mozne_razsiritve kljuc beseda slovar 
+      else mozne_razsiritve_hitreje kljuc beseda slovar) 
+      seznam_kljucev
+  |> List.flatten
+
+    
+  in
+
+  (* Funkcija, ki vrača seznam vseh moznih kljucev po zamenjavah *)
+  let rec mozni_kljuci zacetni_kljuci seznam_besed = 
+
+    match seznam_besed with
+    | [] -> zacetni_kljuci
+    | prva_beseda :: ostale -> 
+        if skoraj_odstrani_znake prva_beseda = "" then (mozni_kljuci zacetni_kljuci ostale) 
+        else mozni_kljuci (mozne_zamenjave_seznam zacetni_kljuci (skoraj_odstrani_znake prva_beseda)) ostale
+    
+  in
+
+
+  (* Izberemo prvi ustrezen ključ in po njem zašifriramo besedilo. *)
+  let izberi_prvi_kljuc seznam besedilo = 
+    match seznam with
+    | [] -> None
+    | ena_resitev :: ostale -> Some (sifriraj ena_resitev besedilo)
+  
+  in
+
+  let razdeljen_stavek = String.split_on_char ' ' stavek in
+  izberi_prvi_kljuc (mozni_kljuci [(String.make 26 '_')] razdeljen_stavek) stavek
+ 
+  (*
+
 
 let primer_5_16 = sifriraj quick_brown_fox "THIS IS A VERY HARD PROBLEM"
 (* val primer_5_16 : string = "VKBO BO T AUSD KTSQ MSJHNUF" *)
 
 let primer_5_17 = odsifriraj "VKBO BO T AUSD KTSQ MSJHNUF"
 (* val primer_5_17 : string option = Some "THIS IS A VERY HARD PROBLEM" *)
+ *)
