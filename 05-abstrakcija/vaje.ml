@@ -20,9 +20,13 @@ module type NAT = sig
 
   val eq  : t -> t -> bool
   val zero : t
-  (* Dodajte manjkajoče! *)
-  (* val to_int : t -> int *)
-  (* val of_int : int -> t *)
+  val one : t
+  val sestevanje : t -> t -> t
+  val odstevanje : t -> t -> t
+  val mnozenje : t -> t -> t
+  
+  val to_int : t -> int
+  val of_int : int -> t 
 end
 
 (*----------------------------------------------------------------------------*
@@ -36,9 +40,20 @@ end
 module Nat_int : NAT = struct
 
   type t = int
-  let eq x y = failwith "later"
+  let eq x y = x = y
   let zero = 0
-  (* Dodajte manjkajoče! *)
+
+  let one = 1
+  
+  let sestevanje x y = x + y
+
+  let odstevanje x y = if x - y < 0 then 0 else x - y
+
+  let mnozenje x y = x * y
+
+  let to_int x = x
+
+  let of_int x = if x < 0 then 0 else x
 
 end
 
@@ -53,10 +68,44 @@ end
 
 module Nat_peano : NAT = struct
 
-  type t = unit (* To morate spremeniti! *)
-  let eq x y = failwith "later"
-  let zero = () (* To morate spremeniti! *)
-  (* Dodajte manjkajoče! *)
+  type t = 
+  | Zero
+  | Succ of t
+
+  let rec eq x y = match x,y with 
+  | Zero, Zero -> true
+  | Succ _, Zero -> false
+  | Zero, Succ _ -> false
+  | Succ x', Succ y' -> eq x' y'
+
+  let zero = Zero
+
+  let one = Succ Zero
+
+  let rec sestevanje x y = match x, y with
+  | Zero, Zero -> Zero
+  | Succ _, Zero -> x
+  | Zero, Succ _ -> y
+  | Succ x', Succ y' -> Succ (sestevanje x' y)
+
+  let rec odstevanje x y = match x, y with
+  | Zero, Zero -> Zero
+  | Succ _ , Zero -> x
+  | Zero, Succ _ -> y
+  | Succ x', Succ y' -> odstevanje x' y'
+
+  let rec mnozenje x y = match x, y with
+  | Zero, _ -> Zero
+  | _, Zero -> Zero
+  | Succ x', Succ y' -> sestevanje y (mnozenje x' y)
+
+  let rec to_int x = match x with 
+  | Zero -> 0
+  | Succ x' -> (to_int x') + 1
+
+  let rec of_int x = match x with
+  | 0 -> Zero
+  | _ -> Succ (of_int (x - 1))
 
 end
 
@@ -79,6 +128,7 @@ end
 let sum_nat_100 = 
   (* let module Nat = Nat_int in *)
   let module Nat = Nat_peano in
+
   Nat.zero (* to popravite na ustrezen izračun *)
   (* |> Nat.to_int *)
 (* val sum_nat_100 : int = 5050 *)
@@ -135,7 +185,15 @@ let sum_nat_100 =
 module type COMPLEX = sig
   type t
   val eq : t -> t -> bool
-  (* Dodajte manjkajoče! *)
+  val zero : t
+  val enka : t
+  val i : t
+
+  val negacija : t -> t
+  val konjugacija : t -> t
+  val sestevanje : t -> t -> t
+  val mnozenje: t -> t -> t
+
 end
 
 (*----------------------------------------------------------------------------*
@@ -147,9 +205,21 @@ module Cartesian : COMPLEX = struct
 
   type t = {re : float; im : float}
 
-  let eq x y = failwith "later"
-  (* Dodajte manjkajoče! *)
+  let eq x y = if x.re = y.re && x.im = y.im then true else false
 
+  let zero = {re = 0.; im = 0.}
+
+  let enka = {re = 1.; im = 0.}
+
+  let i = {re = 0.; im = 1.}
+
+  let negacija stevilo = {re = -. stevilo.re ; im = -. stevilo.im}
+
+  let konjugacija stevilo = {re = stevilo.re ; im = -. stevilo.im}
+
+  let sestevanje x y = {re = x.re +. y.re ; im = x.im +. y.im}
+
+  let mnozenje x y = {re = x.re *. y.re -. x.im *. y.im ; im = x.re *. y.im -. y.re *. x.im}
 end
 
 (*----------------------------------------------------------------------------*
